@@ -9,10 +9,9 @@ MY_LDFLAGS_DEBUG = -fsanitize=address,leak,undefined
 ROOT = src/backend
 BIN_NAME = proxy
 OBJ = plugins_manager.o stack.o
-GOALS = plugins_manager utils
+GOALS = plugins_manager utils config
 MAIN_OBJ = master.o
-#LIBS_LINK = ...
-#LIBS = ...
+LIBS_LINK = -lconfig
 
 all:
 	make clean_source_dir
