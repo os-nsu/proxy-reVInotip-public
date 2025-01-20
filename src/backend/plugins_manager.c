@@ -86,6 +86,56 @@ void init_loader() {
 //========LOAD PLUGINS========
 
 /**
+ * @brief Recursive function for load plugins
+ * 
+ * @param path_to_source - directory which contains shared libraries (.so files)
+ * @param curr_depth  - current scan depth relative to the start directory (0 by default; this parameter need for
+ * recursion)
+ * @param depth - max scan depth relative to the start directory
+ * @param plugins - array of plugins names for load (with .so)
+ * @param count_plugins - size of array of plugins names
+ */
+static void load_plugins(char *path_to_source, int curr_depth, const int depth, char **plugins, const size_t count_plugins) {
+    DIR *source = opendir(path_to_source);
+    if (source == NULL) {
+        fprintf(stderr, "[ERROR] Error during opening the extensions directory (%s): %s\n", path_to_source,
+                strerror(errno));
+        return;
+    }
+    struct dirent *entry;
+
+    // Scan current directory
+    while ((entry = readdir(source)) != NULL) {
+        // create full path to sample
+        char *full_path = string_concat(path_to_source, entry->d_name, '/');
+        if (full_path == NULL) {
+            free(full_path);
+            break;
+        }
+
+        // if file is regular file and plugins array contains it
+        // we load it to RAM
+        if (entry->d_type == DT_REG && is_plugin_in_array(entry->d_name, plugins, count_plugins)) {
+            // load library and push it to stack with libraries
+            void *library = dlopen(full_path, RTLD_LAZY);
+            if (library == NULL) { fprintf(stderr, "[WARN] %s\n", dlerror()); }
+            push_to_stack(&plug_stack, library);
+
+            free(full_path);
+            break;
+        }
+        // if file is directory and it is not link to this or previous directory
+        else if (entry->d_type == DT_DIR && strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
+            load_plugins(full_path, curr_depth + 1, depth, plugins, count_plugins);
+        }
+
+        free(full_path);
+    }
+
+    closedir(source);
+}
+
+/**
  * @brief Find and load all shared libraries
  * @param [in] path_to_source - directory which contains shared libraries (.so files)
  * @param [in] curr_depth - current scan depth relative to the start directory (0 by default; this parameter need for
@@ -122,38 +172,7 @@ void default_loader(char *path_to_source, int curr_depth, const int depth) {
         }
     }
 
-    DIR *source = opendir(path_to_source);
-    if (source == NULL) {
-        fprintf(stderr, "[ERROR] Error during opening the extensions directory (%s): %s\n", path_to_source,
-                strerror(errno));
-        goto FREE_PLUGINS;
-    }
-    struct dirent *entry;
-
-    // Scan current directory
-    while ((entry = readdir(source)) != NULL) {
-        // create full path to sample
-        char *full_path = string_concat(path_to_source, entry->d_name, '/');
-        if (full_path == NULL) { break; }
-
-        // if file is regular file and plugins array contains it
-        // we load it to RAM
-        if (entry->d_type == DT_REG && is_plugin_in_array(entry->d_name, plugins, count_plugins)) {
-            // load library and push it to stack with libraries
-            void *library = dlopen(full_path, RTLD_LAZY);
-            if (library == NULL) { fprintf(stderr, "[WARN] %s\n", dlerror()); }
-            push_to_stack(&plug_stack, library);
-            break;
-        }
-        // if file is directory and it is not link to this or previous directory
-        else if (entry->d_type == DT_DIR && strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
-            default_loader(full_path, curr_depth + 1, depth);
-        }
-
-        free(full_path);
-    }
-
-    closedir(source);
+    load_plugins(path_to_source, curr_depth, depth, plugins, count_plugins);
 
 FREE_PLUGINS:
     for (size_t i = 0; i < count_plugins; ++i) { free(plugins[i]); }
