@@ -2,3 +2,6 @@
 .clang-tidy
 .clang-format
 install
+*.o
+*.so
+*.a

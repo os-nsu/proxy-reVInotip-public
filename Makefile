@@ -8,7 +8,8 @@ MY_LDFLAGS = ${CCFLAGS} ${CFLAGS} ${COPT} ${CPPFLAGS} ${LDFLAGS} -ldl -export-dy
 MY_LDFLAGS_DEBUG = -fsanitize=address,leak,undefined
 ROOT = src/backend
 BIN_NAME = proxy
-#OBJ = ...
+OBJ = plugins_manager.o stack.o
+GOALS = plugins_manager utils
 MAIN_OBJ = master.o
 #LIBS_LINK = ...
 #LIBS = ...
@@ -17,14 +18,14 @@ all:
 	make clean_source_dir
 	make create_source_dir
 	make link
-	make plugins
+	make plugin
 	echo "Done"
 
 debug:
 	make clean_source_dir
 	make create_source_dir
 	make link_debug
-	make plugins
+	make plugin
 	echo "Done"
 
 link: $(MAIN_OBJ) $(OBJ)
@@ -33,7 +34,7 @@ link: $(MAIN_OBJ) $(OBJ)
 link_debug: $(MAIN_OBJ) $(OBJ)
 	$(CC) $(MY_LDFLAGS) $(MY_LDFLAGS_DEBUG) $^ -L$(SOURCE) $(LIBS_LINK) -Wl,-rpath=$(SOURCE) -o $(SOURCE)/$(BIN_NAME)
 
-plugins:
+plugin:
 	make -f plugins/Makefile
 
 include $(ROOT)/Makefile

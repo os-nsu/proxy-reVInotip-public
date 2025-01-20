@@ -2,7 +2,7 @@ SUBDIRS = greeting
 
 make_all_plugins:
 	for plugin in $(SUBDIRS); do \
-		make -f contrib/$$plugin/Makefile; \
-		mkdir $(SOURCE)/contrib/$$plugin; \
-		touch $(SOURCE)/contrib/$$plugin/$$plugin.so && cp $(MAIN_DIR)/contrib/$$plugin/$$plugin.so $(SOURCE)/contrib/$$plugin/$$plugin.so; \
+		make -f plugins/$$plugin/Makefile; \
+		mkdir $(SOURCE)/plugins/$$plugin; \
+		touch $(SOURCE)/plugins/$$plugin/$$plugin.so && cp $(MAIN_DIR)/plugins/$$plugin/$$plugin.so $(SOURCE)/plugins/$$plugin/$$plugin.so; \
 	done
