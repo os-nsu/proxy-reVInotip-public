@@ -7,3 +7,4 @@ plugins_manager:
 
 include $(ROOT)/utils/Makefile
 include $(ROOT)/config/Makefile
+include $(ROOT)/logger/Makefile
