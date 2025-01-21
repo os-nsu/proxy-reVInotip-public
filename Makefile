@@ -10,7 +10,7 @@ export ROOT = src/backend
 BIN_NAME = proxy
 OBJ = plugins_manager.o stack.o
 MAIN_OBJ = master.o
-LIBS_LINK = -lconfig -llogger
+export LIBS_LINK = # it will be filled in nested Makefiles
 
 all:
 	make clean_source_dir
