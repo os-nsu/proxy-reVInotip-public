@@ -9,7 +9,7 @@
  *
  */
 
-#include "../include/plugins_manager.h"
+#include "../../include/plugins_manager.h"
 #include <assert.h>
 #include <dirent.h>
 #include <dlfcn.h>
@@ -19,8 +19,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/master.h"
-#include "../include/utils/stack.h"
+#include "../../include/master.h"
+#include "../../include/utils/stack.h"
 
 // if system macros is __USE_MUSC undefined
 #ifndef __USE_MISC

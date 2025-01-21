@@ -2,14 +2,13 @@ export MAIN_DIR = $(CURDIR)
 export INCLUDE_PATH = $(MAIN_DIR)/src/include
 export SOURCE = $(MAIN_DIR)/install
 
-CC = gcc
-MY_CCFLAGS = ${CCFLAGS} ${CFLAGS} ${COPT} ${CPPFLAGS} -fPIC -c -Wall -Wpointer-arith -Wendif-labels -Wmissing-format-attribute -Wimplicit-fallthrough=3 -Wcast-function-type -Wrestrict -Wshadow=compatible-local -Wformat-security -fno-strict-aliasing -fwrapv -g -O2 -I$(INCLUDE_PATH)
+export CC = gcc
+export MY_CCFLAGS = ${CCFLAGS} ${CFLAGS} ${COPT} ${CPPFLAGS} -fPIC -c -Wall -Wpointer-arith -Wendif-labels -Wmissing-format-attribute -Wimplicit-fallthrough=3 -Wcast-function-type -Wrestrict -Wshadow=compatible-local -Wformat-security -fno-strict-aliasing -fwrapv -g -O2 -I$(INCLUDE_PATH)
 MY_LDFLAGS = ${CCFLAGS} ${CFLAGS} ${COPT} ${CPPFLAGS} ${LDFLAGS} -ldl -export-dynamic
 MY_LDFLAGS_DEBUG = -fsanitize=address,leak,undefined
-ROOT = src/backend
+export ROOT = src/backend
 BIN_NAME = proxy
 OBJ = plugins_manager.o stack.o
-GOALS = plugins_manager utils config logger
 MAIN_OBJ = master.o
 LIBS_LINK = -lconfig -llogger
 

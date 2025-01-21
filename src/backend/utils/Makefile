@@ -1,2 +1,2 @@
 utils: 
-	$(CC) $(MY_CCFLAGS) $(ROOT)/utils/stack.c
+	$(CC) $(MY_CCFLAGS) $(MAIN_DIR)/$(ROOT)/utils/stack.c
