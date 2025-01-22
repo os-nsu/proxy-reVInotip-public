@@ -13,4 +13,6 @@
 
 typedef void (*Hook)(void);
 
-extern Hook executor_start_hook; //< is called immediately before start main loop of master process
+extern Hook executor_start_hook; //< is called immediately before start main
+                                 //loop of master process
+
