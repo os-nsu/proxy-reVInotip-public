@@ -2,14 +2,14 @@ export MAINDIR = $(CURDIR)
 
 COPT := ${COPT} -g
 CFLAGS := ${CFLAGS} -export-dynamic
-LDFLAGS := ${LDFLAGS} -L./install/ -ldl #-lconfig -llogger
+LDFLAGS := ${LDFLAGS} -L./install/ -ldl -lconfig -llogger
 CPPFLAGS := ${CPPFLAGS}
 
 CC = gcc
 
 SUBDIRS = src/backend plugins
 
-all:clean_install prepare_dir #backend
+all:clean_install prepare_dir backend
 
 	$(CC) $(CFLAGS) $(COPT) $(CPPFLAGS) -o proxy src/backend/master/master.c   $(LDFLAGS) -Wl,-rpath,$(MAINDIR)/install
 	mv ./proxy install

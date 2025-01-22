@@ -30,6 +30,9 @@
     TODO error handling and include command for config file
 */
 
+#ifndef CONFIG_H
+#define CONFIG_H
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -116,3 +119,6 @@ int set_variable(const ConfigVariable variable);
     \return true if variable exists and false if not
 */
 bool does_variable_exist(const char* name);
+
+
+#endif  //CONFIG_H

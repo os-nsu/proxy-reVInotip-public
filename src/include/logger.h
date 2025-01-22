@@ -14,7 +14,7 @@
     1) STDOUT
     2) STDERR - standard stream for logging. Logger must use this stream
     if chosen stream not available.
-    3) FILE - logger is able to use this stream if parameter path in
+    3) FILESTREAM - logger is able to use this stream if parameter path in
     init_logger call is not NULL. There are log files in chosen directory.
     Their names obey next rule: "proxyN.log", where N is order number of file.
     If all available log files are filled, then logger starts overwrite them
@@ -23,6 +23,9 @@
     IDENTIFICATION
         src/include/logger.h
 */
+
+#ifndef  LOGGER_H
+#define LOGGER_H
 
 enum LogLevel {
     LOG_DEBUG = 1, ///< low level messages
@@ -34,7 +37,7 @@ enum LogLevel {
     LOG_FATAL      ///< messages about system errors that couldn't be processed
 };
 
-enum OutputStream { STDOUT = 1, STDERR, FILE };
+enum OutputStream { STDOUT = 1, STDERR, FILESTREAM };
 
 /*!
     It initializes logger's data (path to directory with log files).
@@ -66,3 +69,5 @@ void fini_logger(void);
  */
 void write_log(enum OutputStream stream, enum LogLevel level,
                const char *filename, int line_number, const char *format, ...);
+
+#endif  //LOGGER_H

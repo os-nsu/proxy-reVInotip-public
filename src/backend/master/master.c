@@ -1,4 +1,6 @@
 #include "../../include/master.h"
+#include "../../include/logger.h"
+#include "../../include/config.h"
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -266,6 +268,14 @@ int main(int argc, char **argv) {
 
     if (executor_start_hook)
         executor_start_hook();
+
+    if (init_logger(NULL, -1, -1)) {
+        fprintf(stderr, "Could not initialize logger");
+    }
+
+    if (create_config_table()) {
+        fprintf(stderr, "Could not initialize config");
+    }
 
     close_plugins(plugins);
     free(plugins);
