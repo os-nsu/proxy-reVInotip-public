@@ -2,7 +2,7 @@
 LIB_DIRS = config logger
 
 all: libs
-	$(CC) $(CFLAGS) $(COPT) $(CPPFLAGS) -o proxy $(MAINDIR)src/backend/master/master.c   $(LDFLAGS) -Wl,-rpath,$(MAINDIR)/install
+	$(CC) $(CFLAGS) $(COPT) $(CPPFLAGS) -o proxy $(MAINDIR)/src/backend/master/master.c   $(LDFLAGS) -Wl,-rpath,$(MAINDIR)/install
 		mv ./proxy install
 
 

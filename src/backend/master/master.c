@@ -68,7 +68,7 @@ struct PluginsStack *init_plugins_stack(int boot_size) {
 void close_plugins(struct PluginsStack *stack) {
     void (*fini_plugin)(void) = NULL;
     for (int i = stack->max_idx; i >= 0; i--) {
-        fini_plugin = (void (*)(void))dlsym(stack->plugins[i].handle, "fini");
+        fini_plugin = dlsym(stack->plugins[i].handle, "fini");
         fini_plugin();
         dlclose(stack->plugins[i].handle);
     }
@@ -283,7 +283,11 @@ int main(int argc, char **argv) {
         goto error_termination;
     }
 
-    printf("%s\n", argv[0]);
+    if (argc > 0)
+        printf("%s\n", argv[0]);
+    else
+        goto error_termination;
+
     char *greeting_name = "greeting";
     char **plugin_names = &greeting_name;
 
