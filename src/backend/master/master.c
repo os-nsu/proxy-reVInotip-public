@@ -1,6 +1,6 @@
 #include "../../include/master.h"
-#include "../../include/logger.h"
 #include "../../include/config.h"
+#include "../../include/logger.h"
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,8 +11,6 @@ Hook executor_start_hook = NULL;
 Hook executor_end_hook = NULL;
 
 /*STRUCTS*/
-
-/*FUNCTION DECLARATIONS*/
 
 /*!
     \struct Plugin
@@ -32,6 +30,19 @@ struct PluginsStack {
     int size;
     int max_idx;
 };
+
+/*FUNCTION DECLARATIONS*/
+struct PluginsStack *init_plugins_stack(int boot_size);
+void close_plugins(struct PluginsStack *stack);
+int push_plugin(struct PluginsStack *stack, void *plugin, char *name);
+struct Plugin pop_plugin(struct PluginsStack *stack);
+struct Plugin get_plugin(struct PluginsStack *stack, char *name);
+char *get_path_from_arg0(const char *arg0);
+char *create_path_from_call_dir(const char *arg0, const char *path);
+char *mk_plugin_path(const char *file_name, const char *plugins_dir,
+                     const char *arg0);
+int load_plugins(char **plugins_list, int plugins_count, char *plugins_dir,
+                 struct PluginsStack *stack, const char *arg0);
 
 /*FUNCTION DEFINITIONS*/
 
@@ -121,7 +132,8 @@ struct Plugin get_plugin(struct PluginsStack *stack, char *name) {
 
 /*!
     \brief creates path from directory, where executable was executed to
-   directory with executable \param [in] arg0 first in arguments list for main
+    directory with executable
+    \param [in] arg0 first in arguments list for main
     \return allocated path to directory with executable from called dir
 */
 char *get_path_from_arg0(const char *arg0) {
@@ -225,11 +237,11 @@ int load_plugins(char **plugins_list, int plugins_count, char *plugins_dir,
 
         if (!handle) {
             error = dlerror();
-            fprintf(
-                stderr,
-                "Library couldn't be opened.\n\tLibrary's path is "
-                "%s\n\tdlopen: %s\n\tcheck plugins folder or rename library\n",
-                plugin_path, error);
+            fprintf(stderr, "Library couldn't be opened.\n \
+                \tLibrary's path is %s\n \
+                \tdlopen: %s\n \
+                \tcheck plugins folder or rename library\n",
+                    plugin_path, error);
             free(stack);
             return -1;
         }
@@ -238,16 +250,17 @@ int load_plugins(char **plugins_list, int plugins_count, char *plugins_dir,
         /*PUSH HANDLE TO PLUGIN STACK*/
         push_plugin(stack, handle, plugins_list[i]);
 
+        const char *func_name = "init";
         /*EXECUTE PLUGIN*/
-        init_plugin = (void (*)(void))dlsym(handle, "init");
+        init_plugin = (void (*)(void))dlsym(handle, func_name);
 
         error = dlerror();
         if (error != NULL) {
             fprintf(
                 stderr,
-                "Library couldn't execute init.\n\tLibrary's name is %s. Dlsym "
-                "message: %s\n\tcheck plugins folder or rename library",
-                plugins_list[i], error);
+                "Library couldn't execute %s.\n\tLibrary's name is %s. Dlsym "
+                "message: %s\n\tcheck plugins folder or rename library\n",
+                func_name, plugins_list[i], error);
             free(stack);
             return -1;
         }
@@ -258,27 +271,36 @@ int load_plugins(char **plugins_list, int plugins_count, char *plugins_dir,
 }
 
 int main(int argc, char **argv) {
+
+    if (init_logger(NULL, -1, -1)) {
+        fprintf(stderr, "Failed to initialize the logger\n");
+        goto error_termination;
+    }
+
+    if (create_config_table()) {
+        fprintf(stderr, "Failed to initialize the config\n");
+        goto error_termination;
+    }
+
     struct PluginsStack *plugins = init_plugins_stack(100);
 
     printf("%s\n", argv[0]);
     char *greeting_name = "greeting";
     char **plugin_names = &greeting_name;
 
+
     load_plugins(plugin_names, 1, NULL, plugins, argv[0]);
 
     if (executor_start_hook)
         executor_start_hook();
 
-    if (init_logger(NULL, -1, -1)) {
-        fprintf(stderr, "Could not initialize logger");
-    }
-
-    if (create_config_table()) {
-        fprintf(stderr, "Could not initialize config");
-    }
 
     close_plugins(plugins);
     free(plugins);
-
     return 0;
+
+error_termination:
+    close_plugins(plugins);
+    free(plugins);
+    return 1;
 }
