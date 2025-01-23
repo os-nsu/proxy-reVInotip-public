@@ -24,6 +24,8 @@
         src/include/logger.h
 */
 
+#pragma once
+
 enum LogLevel {
     LOG_DEBUG = 1, ///< low level messages
     LOG_INFO, ///< traces and meta information (could be substitution for
@@ -37,7 +39,7 @@ enum LogLevel {
 enum OutputStream {
     STDOUT = 1,
     STDERR,
-    FILE
+    FILESTREAM
 };
 
 /*!

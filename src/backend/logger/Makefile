@@ -1,5 +1,3 @@
-LIBS_LINK += -llogger
-
 logger: logger.o
 	$(CC) -shared $(MY_LDFLAGS) logger.o -o $(SOURCE)/liblogger.so
 

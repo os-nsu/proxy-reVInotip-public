@@ -32,6 +32,11 @@ enum {
 };
 #endif
 
+typedef struct Plugin {
+    void *handle;
+    char *name;
+} Plugin;
+
 //========UTILS========
 
 /**
@@ -47,7 +52,7 @@ char *string_concat(char *str1, char *str2, char separator) {
                                           // + separator + end of string ('\0')
     char *new_str = (char *) malloc(len);
     if (new_str == NULL) {
-        fprintf(stderr, "[ERROR] %s\n", strerror(errno));
+        fprintf(stderr, "Malloc error %s\n", strerror(errno));
         return NULL;
     }
 
@@ -61,12 +66,20 @@ char *string_concat(char *str1, char *str2, char separator) {
     return new_str;
 }
 
-bool is_plugin_in_array(char *plug_name, char **plugins, const size_t plug_arr_size) {
+/**
+ * @brief Retuns plugin index in array. If plugin not in array return -1
+ *
+ * @param plug_name - searching plugin name
+ * @param plugins - array of plugins
+ * @param plug_arr_size - size of this array
+ * @return int
+ */
+int plugin_index_in_array(char *plug_name, char **plugins, const size_t plug_arr_size) {
     for (size_t i = 0; i < plug_arr_size; ++i) {
-        if (!strcmp(plug_name, plugins[i])) return true;
+        if (!strcmp(plug_name, plugins[i])) return i;
     }
 
-    return false;
+    return -1;
 }
 
 //========INIT PLUGINS MANAGER========
@@ -86,8 +99,17 @@ void init_loader() {
 //========LOAD PLUGINS========
 
 /**
+ * @brief Returns default name for plugin
+ *
+ * @return const char*
+ */
+const char *default_plugin_name() {
+    return "undefined";
+}
+
+/**
  * @brief Recursive function for load plugins
- * 
+ *
  * @param path_to_source - directory which contains shared libraries (.so files)
  * @param curr_depth  - current scan depth relative to the start directory (0 by default; this parameter need for
  * recursion)
@@ -95,7 +117,8 @@ void init_loader() {
  * @param plugins - array of plugins names for load (with .so)
  * @param count_plugins - size of array of plugins names
  */
-static void load_plugins(char *path_to_source, int curr_depth, const int depth, char **plugins, const size_t count_plugins) {
+static void load_plugins(char *path_to_source, int curr_depth, const int depth, char **plugins,
+                         const size_t count_plugins) {
     DIR *source = opendir(path_to_source);
     if (source == NULL) {
         fprintf(stderr, "[ERROR] Error during opening the extensions directory (%s): %s\n", path_to_source,
@@ -113,13 +136,26 @@ static void load_plugins(char *path_to_source, int curr_depth, const int depth, 
             break;
         }
 
+        int plug_index = plugin_index_in_array(entry->d_name, plugins, count_plugins);
+
         // if file is regular file and plugins array contains it
         // we load it to RAM
-        if (entry->d_type == DT_REG && is_plugin_in_array(entry->d_name, plugins, count_plugins)) {
+        if (entry->d_type == DT_REG && plug_index >= 0) {
             // load library and push it to stack with libraries
             void *library = dlopen(full_path, RTLD_LAZY);
-            if (library == NULL) { fprintf(stderr, "[WARN] %s\n", dlerror()); }
-            push_to_stack(&plug_stack, library);
+            if (library == NULL) {
+                fprintf(stderr, "Library couldn't be opened.\n\
+                    \tLibrary's path is %s\n\
+                    \tdlopen: %s\n\
+                    \tcheck plugins folder or rename library\n",
+                        path_to_source, dlerror());
+            }
+
+            Plugin *plugin = (Plugin *) malloc(sizeof(Plugin));
+            plugin->handle = library;
+            plugin->name = strndup(plugins[plug_index], strlen(plugins[plug_index]) - 3);
+
+            push_to_stack(&plug_stack, plugin);
 
             free(full_path);
             break;
@@ -191,9 +227,12 @@ void init_all_plugins() {
     StackPtr curr_stack = plug_stack;
 
     for (size_t i = 0; i < get_stack_size(plug_stack); i++) {
-        void (*function)() = dlsym(curr_stack->data, "init");
+        void (*function)() = dlsym(((Plugin *) curr_stack->data)->handle, "init");
         if (function == NULL) {
-            fprintf(stderr, "[WARN] %s\n", dlerror());
+            fprintf(stderr, "Library couldn't execute %s.\n\
+                    \tLibrary's name is %s. Dlsym message: %s\n\
+                    \tcheck plugins folder or rename library\n",
+                    "init", ((Plugin *) curr_stack->data)->name, dlerror());
             curr_stack = curr_stack->next_elem;
             continue;
         }
@@ -216,11 +255,20 @@ void close_all_plugins() {
 
     StackPtr curr_stack = plug_stack;
     for (size_t i = 0; i < get_stack_size(plug_stack); i++) {
-        void (*function)() = dlsym(curr_stack->data, "fini");
-        if (function == NULL) { fprintf(stderr, "[WARN] %s\n", dlerror()); }
-        function();
+        void (*function)() = dlsym(((Plugin *) curr_stack->data)->handle, "fini");
+        if (function == NULL) {
+            fprintf(stderr, "Library couldn't execute %s.\n\
+                    \tLibrary's name is %s. Dlsym message: %s\n\
+                    \tcheck plugins folder or rename library\n",
+                    "fini", ((Plugin *) curr_stack->data)->name, dlerror());
+        } else {
+            function();
+        }
 
-        if (dlclose(curr_stack->data)) { fprintf(stderr, "[ERROR] Can`t close extension\n"); }
+        dlclose(((Plugin *) curr_stack->data)->handle);
+
+        free(((Plugin *) curr_stack->data)->name);
+        free(curr_stack->data);
 
         curr_stack = curr_stack->next_elem;
     }
@@ -230,12 +278,10 @@ void close_all_plugins() {
 
 //========OVER========
 
-
 /**
- * @brief Get count of loaded plugins
- *
- * @return Count of loaded plugins. If plugin loading procedure has not been called before
+ * @brief Returns count of loaded plugins. If plugin loading procedure has not been called before
  * or no plugins has been loaded, it returns zero
+ * @return size_t
  */
 size_t count_loaded_plugins() {
     return get_stack_size(plug_stack);

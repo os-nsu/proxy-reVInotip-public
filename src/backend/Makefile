@@ -1,3 +1,5 @@
+LIBS_LINK += -lconfig -llogger
+
 SUBDIRS = plugins_manager utils config logger
 
 $(MAIN_OBJ): make_all_subdirs

@@ -33,6 +33,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#pragma once
+
 /*!
     This type describes content of config values.
     It can be interpretred like single value or array of values.
