@@ -14,7 +14,7 @@
     1) STDOUT
     2) STDERR - standard stream for logging. Logger must use this stream
     if chosen stream not available.
-    3) FILE - logger is able to use this stream if parameter path in
+    3) FILESTREAM - logger is able to use this stream if parameter path in
     init_logger call is not NULL. There are log files in chosen directory.
     Their names obey next rule: "proxyN.log", where N is order number of file.
     If all available log files are filled, then logger starts overwrite them
@@ -24,31 +24,31 @@
         src/include/logger.h
 */
 
+#ifndef  LOGGER_H
+#define LOGGER_H
+
 enum LogLevel {
     LOG_DEBUG = 1, ///< low level messages
-    LOG_INFO, ///< traces and meta information (could be substitution for
-              ///< stderr)
-    LOG_WARNING, ///< messages that describe possibly incorrect behavior with
-                 ///< saving invariant
-    LOG_ERROR, ///< messages about system errors
-    LOG_FATAL ///< messages about system errors that couldn't be processed
+    LOG_INFO,      ///< traces and meta information (could be substitution for
+                   ///< stderr)
+    LOG_WARNING,   ///< messages that describe possibly incorrect behavior with
+                   ///< saving invariant
+    LOG_ERROR,     ///< messages about system errors
+    LOG_FATAL      ///< messages about system errors that couldn't be processed
 };
 
-enum OutputStream {
-    STDOUT = 1,
-    STDERR,
-    FILE
-};
+enum OutputStream { STDOUT = 1, STDERR, FILESTREAM };
 
 /*!
     It initializes logger's data (path to directory with log files).
-    \param [in] path path to directory with log files. Could be NULL if file stream wouldn't be used.
+    \param [in] path path to directory with log files. Could be NULL if file
+    stream wouldn't be used.
     \param [in] file_size_limit maximal size in Kb of log file
     \param [in] files_limit maximal count of log files in directory (-1 means
     infinity). This parameter wouldn't be checked if path is NULL.
     \return 0 if success, -1 and sets errno if error
 */
-int init_logger(char* path, long file_size_limit, int files_limit);
+int init_logger(char *path, long file_size_limit, int files_limit);
 
 /*!
     Function frees logger's data structures
@@ -56,7 +56,8 @@ int init_logger(char* path, long file_size_limit, int files_limit);
 void fini_logger(void);
 
 /*!
-    This function write message to specified stream
+    This function write message to .log file with specified format (see file
+    description)
     \param [in] stream type of output stream
     \param [in] level level of message
     \param [in] filename name of code file where write_log was called
@@ -66,7 +67,7 @@ void fini_logger(void);
     printf)
     \return void
  */
-void write_log(enum OutputStream stream, enum LogLevel level, const char* filename, int line_number,
-               const char* format, ...);
+void write_log(enum OutputStream stream, enum LogLevel level,
+               const char *filename, int line_number, const char *format, ...);
 
-
+#endif  //LOGGER_H

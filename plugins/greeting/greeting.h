@@ -9,6 +9,6 @@ void init(void);
 void fini(void);
 
 /*!
-    \return name of plugin as string constant 
+    \return name of plugin as string constant
 */
 const char *name(void);

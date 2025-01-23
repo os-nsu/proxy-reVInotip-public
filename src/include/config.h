@@ -30,6 +30,9 @@
     TODO error handling and include command for config file
 */
 
+#ifndef CONFIG_H
+#define CONFIG_H
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -67,7 +70,7 @@ typedef struct ConfigVariable {
 } ConfigVariable;
 
 /*!
-    Creates config table. It should be called once.
+    Create config table. It should be called once.
     \return -1 if table already exists or 0 if all is OK
 */
 int create_config_table(void);
@@ -75,9 +78,9 @@ int create_config_table(void);
 /*!
     Destroy config table and frees all resources associated with it. It should
    be called once.
-   \return
+   \return -1 if table no exists or 0 if all is OK
 */
-void destroy_config_table(void);
+int destroy_config_table(void);
 
 /*!
     Parse configuration file located on path.
@@ -116,3 +119,6 @@ int set_variable(const ConfigVariable variable);
     \return true if variable exists and false if not
 */
 bool does_variable_exist(const char* name);
+
+
+#endif  //CONFIG_H
