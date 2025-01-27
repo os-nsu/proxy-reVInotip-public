@@ -1,4 +1,3 @@
-#include "greeting.h"
 #include "../../src/include/master.h"
 #include "stdio.h"
 
