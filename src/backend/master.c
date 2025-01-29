@@ -21,7 +21,7 @@
 Hook executor_start_hook = NULL;
 
 int main(int argc, char *argv[]) {
-    if (init_logger(NULL, 0, 0) < 0) {
+    if (init_logger(NULL, 0) < 0) {
         fprintf(stderr, "Failed to initialize the logger\n");
     }
 

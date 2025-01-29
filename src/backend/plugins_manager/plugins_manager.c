@@ -21,8 +21,9 @@
 #include <string.h>
 #include "../../include/master.h"
 #include "../../include/utils/stack.h"
+#include "../../include/utils/extended_string.h"
 
-// if system macros is __USE_MUSC undefined
+// if system macros is __USE_MISC undefined
 #ifndef __USE_MISC
 enum {
     DT_DIR = 4,
@@ -38,33 +39,6 @@ typedef struct Plugin {
 } Plugin;
 
 //========UTILS========
-
-/**
- * @brief Create new string by concatenating two strings divided by separator (-1 means without separator)
- *
- * @return str1 + separator + str2 and NULL if some error occurred
- *
- * @note This function allocate memory in heap and you need to free it
- */
-char *string_concat(char *str1, char *str2, char separator) {
-    size_t len1 = strlen(str1);
-    size_t len = len1 + strlen(str2) + 2; // len of first string + len of second string +
-                                          // + separator + end of string ('\0')
-    char *new_str = (char *) malloc(len);
-    if (new_str == NULL) {
-        fprintf(stderr, "Malloc error %s\n", strerror(errno));
-        return NULL;
-    }
-
-    memset(new_str, '\0', len);
-    new_str = strcpy(new_str, str1);
-
-    if (separator >= 0) { new_str[len1] = separator; }
-
-    new_str = strcat(new_str, str2);
-
-    return new_str;
-}
 
 /**
  * @brief Retuns plugin index in array. If plugin not in array return -1
