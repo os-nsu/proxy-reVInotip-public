@@ -19,7 +19,6 @@
  * @return str1 + separator + str2 and NULL if some error occurred
  *
  * @warning This function allocate memory in heap and you need to free it
- * @note Need to test
  */
 extern char *string_concat(char *str1, char *str2, char separator);
 

@@ -22,6 +22,7 @@
 #include "../../include/master.h"
 #include "../../include/utils/stack.h"
 #include "../../include/utils/extended_string.h"
+#include "../../include/logger.h"
 
 // if system macros is __USE_MISC undefined
 #ifndef __USE_MISC
@@ -95,7 +96,7 @@ static void load_plugins(char *path_to_source, int curr_depth, const int depth, 
                          const size_t count_plugins) {
     DIR *source = opendir(path_to_source);
     if (source == NULL) {
-        fprintf(stderr, "[ERROR] Error during opening the extensions directory (%s): %s\n", path_to_source,
+        LOG(LOG_ERROR, "Error during opening the extensions directory (%s): %s\n", path_to_source,
                 strerror(errno));
         return;
     }
@@ -118,7 +119,7 @@ static void load_plugins(char *path_to_source, int curr_depth, const int depth, 
             // load library and push it to stack with libraries
             void *library = dlopen(full_path, RTLD_LAZY);
             if (library == NULL) {
-                fprintf(stderr, "Library couldn't be opened.\n\
+                LOG(LOG_ERROR, "Library couldn't be opened.\n\
                     \tLibrary's path is %s\n\
                     \tdlopen: %s\n\
                     \tcheck plugins folder or rename library\n",
@@ -130,6 +131,7 @@ static void load_plugins(char *path_to_source, int curr_depth, const int depth, 
             plugin->name = strndup(plugins[plug_index], strlen(plugins[plug_index]) - 3);
 
             push_to_stack(&plug_stack, plugin);
+            LOG(LOG_INFO, "Plugin %s loaded\n", plugin->name);
 
             free(full_path);
             break;
@@ -155,16 +157,11 @@ static void load_plugins(char *path_to_source, int curr_depth, const int depth, 
  */
 void default_loader(char *path_to_source, int curr_depth, const int depth) {
     if (path_to_source == NULL) {
-        fprintf(stderr, "[ERROR] Can not load extensions because path to them is invalid!\n");
+        LOG(LOG_ERROR, "Can not load extensions because path to them is invalid!\n");
         return;
     }
 
     if (curr_depth > depth) { return; }
-
-    /*if (!is_var_exists_in_config("plugins", C_MAIN)) {
-        elog(WARN, "Variable plugins does not exists in config");
-        return;
-    }*/
 
     // It will be replaced in lab2
     size_t count_plugins = 1;
@@ -203,7 +200,7 @@ void init_all_plugins() {
     for (size_t i = 0; i < get_stack_size(plug_stack); i++) {
         void (*function)() = dlsym(((Plugin *) curr_stack->data)->handle, "init");
         if (function == NULL) {
-            fprintf(stderr, "Library couldn't execute %s.\n\
+            LOG(LOG_ERROR, "Library couldn't execute %s.\n\
                     \tLibrary's name is %s. Dlsym message: %s\n\
                     \tcheck plugins folder or rename library\n",
                     "init", ((Plugin *) curr_stack->data)->name, dlerror());
@@ -231,7 +228,7 @@ void close_all_plugins() {
     for (size_t i = 0; i < get_stack_size(plug_stack); i++) {
         void (*function)() = dlsym(((Plugin *) curr_stack->data)->handle, "fini");
         if (function == NULL) {
-            fprintf(stderr, "Library couldn't execute %s.\n\
+            LOG(LOG_ERROR, "Library couldn't execute %s.\n\
                     \tLibrary's name is %s. Dlsym message: %s\n\
                     \tcheck plugins folder or rename library\n",
                     "fini", ((Plugin *) curr_stack->data)->name, dlerror());

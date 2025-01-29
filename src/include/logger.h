@@ -48,7 +48,7 @@ enum OutputStream {
     \param [in] file_size_limit maximal size in Kb of log file 
     \return 0 if success, -1 and sets errno if error
 */
-int init_logger(char* path, unsigned int file_size_limit);
+int init_logger(char* path, int file_size_limit);
 
 /*!
     Function frees logger's data structures
@@ -58,7 +58,13 @@ void fini_logger(void);
 #define LOG(level, format, ...) \
     do \
     { \
-        write_log(level, __FILE__, __LINE__, format, ## __VA_ARGS__); \
+        write_log(FILESTREAM, level, __FILE__, __LINE__, format, ## __VA_ARGS__); \
+    } while(0)
+
+#define LOG1(stream, level, format, ...) \
+    do \
+    { \
+        write_log(stream, level, __FILE__, __LINE__, format, ## __VA_ARGS__); \
     } while(0)
 
 /*!
@@ -74,6 +80,6 @@ void fini_logger(void);
     \return void
  */
 void write_log(enum OutputStream stream, enum LogLevel level, const char* filename, int line_number,
-               const char* format, ...);
+               const char* format, ...) __attribute__((format(printf, 5, 6)));
 
 

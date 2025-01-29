@@ -16,3 +16,10 @@
 typedef void (*Hook)(void);
 
 extern Hook executor_start_hook; //< is called immediately before start main loop of master process
+
+/**
+ * @brief Terminates program with some exit code
+ * 
+ * @param code - exit code
+ */
+extern void shutdown(int code);
