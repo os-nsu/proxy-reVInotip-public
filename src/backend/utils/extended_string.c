@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../../include/utils/extended_string.h"
 #include "../../include/logger.h"
 
 /**
@@ -39,6 +40,32 @@ char *string_concat(char *str1, char *str2, char separator) {
     if (separator >= 0) { new_str[len1] = separator; }
 
     new_str = strcat(new_str, str2);
+
+    return new_str;
+}
+
+/**
+ * @brief Erase all symbols after last erase_after symbol in string (erase_after not include)
+ * 
+ * @param str 
+ * @param erase_after
+ * @return char*
+ * @warning This function allocate memory in heap and you need to free it
+ */
+char *erase_right(char *str, char erase_after) {
+    int pos = strlen(str);
+    while (str[pos] != erase_after) {
+        --pos;
+        if (pos < 0) { return NULL; }
+    }
+
+    char *new_str = (char*)calloc(pos, sizeof(char));
+    if (new_str == NULL) {
+        LOG(LOG_ERROR, "Calloc error %s\n", strerror(errno));
+        return NULL;
+    }
+
+    strncpy(new_str, str, pos);
 
     return new_str;
 }
@@ -119,4 +146,5 @@ char *oversize_string_concat(char *str1, char *str2, char separator, size_t empt
     new_str = strcat(new_str, str2);
 
     return new_str;
+
 }

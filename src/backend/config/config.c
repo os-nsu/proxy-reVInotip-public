@@ -9,23 +9,11 @@
  *
  */
 
-#include "../../include/config.h"
-#include <cstddef>
-#include <cstdint>
-
-/**
- * @brief Create a config table object
- *
- * @return -1 if table already exists or 0 if all is OK
- */
-int create_config_table(void) {
-    return 0;
-}
-
 /**
  * TODO
  *  Split analize_config_string function with read_config_string function
  */
+#include <stdbool.h>
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -42,6 +30,8 @@ int create_config_table(void) {
 
 static HashMapPtr map;
 static StackPtr alloc_mem_stack;
+
+bool is_config_created = false;
 
 typedef struct ConfigString {
     char key[MAX_CONFIG_KEY_SIZE];
@@ -326,6 +316,34 @@ bool read_config_string(FILE *config, char **conf_raw_string, size_t size) {
     if (ferror(config)) LOG(LOG_ERROR, "Error occurred while reading config file: %s", strerror(errno));
 
     return false;
+}
+
+/**
+ * @brief Create a config table object
+ *
+ * @return -1 if table already exists or 0 if all is OK
+ */
+int create_config_table(void) {
+    if (is_config_created) {
+        return -1;
+    }
+
+    is_config_created = true;
+    return 0;
+}
+
+/*!
+    Destroy config table and frees all resources associated with it. It should
+   be called once.
+    @return -1 if table already destroyed or 0 if all is OK
+*/
+int destroy_config_table(void) {
+    if (is_config_created) {
+        is_config_created = false;
+        return 0;
+    }
+
+    return -1;
 }
 
 void create_guc_table() {

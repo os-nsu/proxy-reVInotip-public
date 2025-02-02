@@ -88,6 +88,10 @@ static int is_log_file_complete() {
  * @return 0 if success, -1 and sets errno if error
  */
 int init_logger(char *path, int file_size_limit) {
+    if (is_logger_initted) {
+        return -1;
+    }
+  
     logger = (Logger *) malloc(sizeof(Logger));
     if (logger == NULL) { return -1; }
     if (path == NULL) { return 0; }
@@ -199,15 +203,20 @@ void write_log(enum OutputStream stream, enum LogLevel level, const char *filena
 
 /*!
     Function frees logger's data structures
+    @return -1 if logger already finished or 0 if all is OK
+     -2 means error
 */
-void fini_logger(void) {
-    if (!is_log_initted) return;
+int fini_logger(void) {
+    if (!is_log_initted) { return -1; }
 
     if (fclose(logger->stream) == EOF) {
         fprintf(stderr, "Can not close current log file: %s\n", strerror(errno));
-        return;
+        return -1;
     }
 
     free(logger->log_file_name);
     free(logger);
+    
+    is_logger_initted = false;
+    return 0;
 }

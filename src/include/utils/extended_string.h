@@ -1,6 +1,6 @@
 /**
  * @file extended_string.h
- * @author your name (you@domain.com)
+ * @author reVInotip
  * @brief This file contains extended operations on c-string
  * @version 0.1
  * @date 2025-01-27
@@ -21,6 +21,16 @@
  * @warning This function allocate memory in heap and you need to free it
  */
 extern char *string_concat(char *str1, char *str2, char separator);
+
+/**
+ * @brief Erase all symbols after last erase_after symbol in string
+ * 
+ * @param str 
+ * @param erase_after 
+ * @return char* 
+ * @warning This function allocate memory in heap and you need to free it
+ */
+char *erase_right(char *str, char erase_after);
 
 /**
  * @brief Create new string by concatenating two strings divided by separator (-1 means without separator)

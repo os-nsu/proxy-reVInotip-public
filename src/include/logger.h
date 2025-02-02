@@ -52,8 +52,21 @@ int init_logger(char* path, int file_size_limit);
 
 /*!
     Function frees logger's data structures
+    \return -1 if logger already finished or 0 if all is OK
 */
-void fini_logger(void);
+int fini_logger(void);
+
+#define LOG(level, format, ...) \
+    do \
+    { \
+        write_log(FILESTREAM, level, __FILE__, __LINE__, format, ## __VA_ARGS__); \
+    } while(0)
+
+#define LOG1(stream, level, format, ...) \
+    do \
+    { \
+        write_log(stream, level, __FILE__, __LINE__, format, ## __VA_ARGS__); \
+    } while(0)
 
 #define LOG(level, format, ...) \
     do \
@@ -81,5 +94,3 @@ void fini_logger(void);
  */
 void write_log(enum OutputStream stream, enum LogLevel level, const char* filename, int line_number,
                const char* format, ...) __attribute__((format(printf, 5, 6)));
-
-
