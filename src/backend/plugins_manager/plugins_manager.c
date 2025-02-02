@@ -127,6 +127,11 @@ static void load_plugins(char *path_to_source, int curr_depth, const int depth, 
             }
 
             Plugin *plugin = (Plugin *) malloc(sizeof(Plugin));
+            if (plugin == NULL) {
+                LOG(LOG_ERROR, "Error while allocating memory: %s\n", strerror(errno));
+                return;
+            }
+
             plugin->handle = library;
             plugin->name = strndup(plugins[plug_index], strlen(plugins[plug_index]) - 3);
 
