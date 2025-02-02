@@ -1,0 +1,8 @@
+29/01/25 20:46:23 +07 src/backend/master.c 50 [61234] | LOG_ERROR: Failed to initialize the config
+29/01/25 20:46:23 +07 /home/grigoriy/Projects/oos_new_labs/proxy-reVInotip/src/backend/plugins_manager/plugins_manager.c 134 [61234] | LOG_INFO: Plugin greeting loaded
+29/01/25 20:46:24 +07 src/backend/master.c 50 [61244] | LOG_ERROR: Failed to initialize the config
+29/01/25 20:46:24 +07 /home/grigoriy/Projects/oos_new_labs/proxy-reVInotip/src/backend/plugins_manager/plugins_manager.c 134 [61244] | LOG_INFO: Plugin greeting loaded
+29/01/25 20:52:32 +07 src/backend/master.c 51 [62584] | LOG_FATAL: Failed to initialize the config
+29/01/25 20:52:49 +07 /home/grigoriy/Projects/oos_new_labs/proxy-reVInotip/src/backend/plugins_manager/plugins_manager.c 134 [62729] | LOG_INFO: Plugin greeting loaded
+29/01/25 20:56:31 +07 /home/grigoriy/Projects/oos_new_labs/proxy-reVInotip/src/backend/plugins_manager/plugins_manager.c 134 [63593] | LOG_INFO: Plugin greeting loaded
+29/01/25 20:57:37 +07 /home/grigoriy/Projects/oos_new_labs/proxy-reVInotip/src/backend/plugins_manager/plugins_manager.c 134 [63816] | LOG_INFO: Plugin greeting loaded

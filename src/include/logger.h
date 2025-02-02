@@ -68,6 +68,18 @@ int fini_logger(void);
         write_log(stream, level, __FILE__, __LINE__, format, ## __VA_ARGS__); \
     } while(0)
 
+#define LOG(level, format, ...) \
+    do \
+    { \
+        write_log(FILESTREAM, level, __FILE__, __LINE__, format, ## __VA_ARGS__); \
+    } while(0)
+
+#define LOG1(stream, level, format, ...) \
+    do \
+    { \
+        write_log(stream, level, __FILE__, __LINE__, format, ## __VA_ARGS__); \
+    } while(0)
+
 /*!
     This function write message to .log file with specified format (see file
     description)
