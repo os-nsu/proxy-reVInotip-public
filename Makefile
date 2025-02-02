@@ -8,7 +8,7 @@ MY_LDFLAGS = ${CCFLAGS} ${CFLAGS} ${COPT} ${CPPFLAGS} ${LDFLAGS} -ldl -export-dy
 MY_LDFLAGS_DEBUG = -fsanitize=address,leak,undefined
 export ROOT = src/backend
 BIN_NAME = proxy
-OBJ = plugins_manager.o stack.o
+OBJ = plugins_manager.o stack.o extended_string.o
 MAIN_OBJ = master.o
 export LIBS_LINK = # it will be filled in nested Makefiles
 

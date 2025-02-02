@@ -37,6 +37,12 @@
 
 /*!
     Create config table. It should be called once.
-    \return -1 if table already exists or 0 if all is OK
+    @return -1 if table already destroyed or 0 if all is OK
 */
-int create_config_table(void);
+extern int create_config_table(void);
+
+/*!
+    Destroy config table and frees all resources associated with it. It should
+   be called once.
+*/
+extern int destroy_config_table(void);
