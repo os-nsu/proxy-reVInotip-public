@@ -15,7 +15,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../../include/utils/extended_string.h"
-#include "../../include/logger.h"
 
 /**
  * @brief Create new string by concatenating two strings divided by separator (-1 means without separator)
@@ -30,7 +29,7 @@ char *string_concat(char *str1, char *str2, char separator) {
                                           // + separator + end of string ('\0')
     char *new_str = (char *) malloc(len);
     if (new_str == NULL) {
-        LOG(LOG_ERROR, "Malloc error %s\n", strerror(errno));
+        fprintf(stderr, "Malloc error %s\n", strerror(errno));
         return NULL;
     }
 
@@ -61,7 +60,7 @@ char *erase_right(char *str, char erase_after) {
 
     char *new_str = (char*)calloc(pos, sizeof(char));
     if (new_str == NULL) {
-        LOG(LOG_ERROR, "Calloc error %s\n", strerror(errno));
+        fprintf(stderr, "Calloc error %s\n", strerror(errno));
         return NULL;
     }
 
@@ -97,7 +96,7 @@ char *multi_string_concat(char separator, int count, ...) {
     // second step: allocate memory and fill it with zeros
     char *new_str = (char *) calloc(summary_len, sizeof(char));
     if (new_str == NULL) {
-        LOG(LOG_ERROR, "Malloc error %s\n", strerror(errno));
+        fprintf(stderr, "Malloc error %s\n", strerror(errno));
         return NULL;
     }
 
@@ -134,7 +133,7 @@ char *oversize_string_concat(char *str1, char *str2, char separator, size_t empt
                                           // + separator + end of string ('\0')
     char *new_str = (char *) malloc(len + empty_size);
     if (new_str == NULL) {
-        LOG(LOG_ERROR, "Malloc error %s\n", strerror(errno));
+        fprintf(stderr, "Malloc error %s\n", strerror(errno));
         return NULL;
     }
 
@@ -146,5 +145,4 @@ char *oversize_string_concat(char *str1, char *str2, char separator, size_t empt
     new_str = strcat(new_str, str2);
 
     return new_str;
-
 }
