@@ -57,7 +57,7 @@ typedef struct Logger {
 } Logger;
 
 Logger *logger;
-bool is_log_initted = false;
+bool is_logger_initted = false;
 
 /**
  * \brief Check is log file complete
@@ -88,13 +88,12 @@ static int is_log_file_complete() {
  * @return 0 if success, -1 and sets errno if error
  */
 int init_logger(char *path, int file_size_limit) {
-    if (is_logger_initted) {
-        return -1;
-    }
+    if (is_logger_initted) { return -1; }
+    if (path == NULL) { return 0; }
+    if (file_size_limit <= 0) { return -1; }
   
     logger = (Logger *) malloc(sizeof(Logger));
     if (logger == NULL) { return -1; }
-    if (path == NULL) { return 0; }
 
     logger->log_file_name = string_concat(path, LOG_FILE_NAME, '/');
     logger->file_size_limit = file_size_limit;
@@ -113,7 +112,7 @@ int init_logger(char *path, int file_size_limit) {
         }
     }
 
-    is_log_initted = true;
+    is_logger_initted = true;
     return 0;
 
 ERROR:
@@ -159,7 +158,7 @@ void write_log(enum OutputStream stream, enum LogLevel level, const char *filena
         logger->stream = freopen(logger->log_file_name, "w", logger->stream);
         if (logger->stream == NULL) {
             fprintf(stderr, "Can not reopen log file: %s. Change log stream to default (=stderr)\n", strerror(errno));
-            is_log_initted = false;
+            is_logger_initted = false;
         }
     }
 
@@ -185,7 +184,7 @@ void write_log(enum OutputStream stream, enum LogLevel level, const char *filena
         output_stream = stdout;
     } else if (stream == STDERR) {
         output_stream = stderr;
-    } else if (stream == FILESTREAM && is_log_initted) {
+    } else if (stream == FILESTREAM && is_logger_initted) {
         output_stream = logger->stream;
     } else {
         fprintf(stderr, "Wrong stream parameter! Default value (=stderr) will be used\n");
@@ -207,7 +206,7 @@ void write_log(enum OutputStream stream, enum LogLevel level, const char *filena
      -2 means error
 */
 int fini_logger(void) {
-    if (!is_log_initted) { return -1; }
+    if (!is_logger_initted) { return -1; }
 
     if (fclose(logger->stream) == EOF) {
         fprintf(stderr, "Can not close current log file: %s\n", strerror(errno));

@@ -13,7 +13,7 @@
  * TODO
  *  Split analize_config_string function with read_config_string function
  */
-#include <stdbool.h>
+#include "../../include/config.h"
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -21,12 +21,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "../../include/config.h"
 #include "../../include/logger.h"
 #include "../../include/utils/hash_map.h"
 #include "../../include/utils/stack.h"
 
 #define MAX_CONFIG_KEY_SIZE 128
+#define START_CONFIG_VALUE_SIZE 200
 
 static HashMapPtr map;
 static StackPtr alloc_mem_stack;
@@ -37,6 +37,8 @@ typedef struct ConfigString {
     char key[MAX_CONFIG_KEY_SIZE];
     ConfigVariable *value;
 } ConfigString;
+
+//=========UTILS (finite state machine)=========
 
 /**
  * @brief This enum contains different states of parser's finite state machine
@@ -162,11 +164,12 @@ State transmission(State current, char input) {
 }
 
 /**
- * \brief Analyze config raw string: extract from it key and value,
- * check if string is invalid, discards comments or empty strings
- * \param [in] conf_str - Raw config string
- * \return Parsed config string if success or NULL if some error occurred
- * \note Memory for string interpretation will be allocated automatically, so after use you should free it
+ * @brief Analyze config raw string: extract from it key and value,
+ * check if string is invalid, discards comments or empty strings and convert it to convenient from
+ * @param [in] conf_str - Raw config string
+ * @return Parsed config string if success or NULL if some error occurred
+ * @note Memory for string interpretation will be allocated automatically, so after use you should free it
+ * @note Memory for config variable also will be allocated automatically
  */
 ConfigString *convert_config_string(const char *conf_str) {
     ConfigVariable *variable = (ConfigVariable *) calloc(1, sizeof(ConfigVariable));
@@ -228,15 +231,21 @@ ConfigString *convert_config_string(const char *conf_str) {
         }
     }
 
-    switch(curr_state) {
+    switch (curr_state) {
         case END_VALUES:
             data[j] = '\0';
             parsed_conf_str->value->count++;
-            switch(parsed_conf_str->value->type) {
+            switch (parsed_conf_str->value->type) {
                 case INTEGER:
-                    *parsed_conf_str->value->data.integer = atoi(data);
+                    parsed_conf_str->value->data.integer = (int64_t *) calloc(parsed_conf_str->value->count, sizeof(int64_t));
+                    for (int i = 0; i < parsed_conf_str->value->count; ++i) {
+                        parsed_conf_str->value->data.integer[i] = atoi(data);
+                    }
                 case REAL:
-                    *parsed_conf_str->value->data.real = atof(data);
+                    parsed_conf_str->value->data.real = (double *) calloc(parsed_conf_str->value->count, sizeof(double));
+                    for (int i = 0; i < parsed_conf_str->value->count; ++i) {
+                        parsed_conf_str->value->data.real[i] = atof(data);
+                    }
                 case STRING:
                     *parsed_conf_str->value->data.string = (char *) calloc(strlen(data) + 1, sizeof(char));
                     if (parsed_conf_str->value->data.string == NULL) {
@@ -250,18 +259,18 @@ ConfigString *convert_config_string(const char *conf_str) {
                     goto ERROR_EXIT;
             }
         case BAD_KEY:
-            data[j+1] = '\0';
+            data[j + 1] = '\0';
             LOG(LOG_ERROR, "Invalid key: %s\n", data);
             goto ERROR_EXIT;
         case BAD_VALUE:
             LOG(LOG_ERROR, "Invalid value on key: %s\n", data);
             goto ERROR_EXIT;
         case MISSING_EQ_SIGN:
-            data[j+1] = '\0';
+            data[j + 1] = '\0';
             LOG(LOG_ERROR, "Missing equal sign after key: %s\n", data);
             goto ERROR_EXIT;
         default:
-            data[j+1] = '\0';
+            data[j + 1] = '\0';
             LOG(LOG_ERROR, "Unkown error in string: %s...\n", data);
             goto ERROR_EXIT;
     }
@@ -277,34 +286,56 @@ ERROR_EXIT:
     return NULL;
 }
 
-void destroy_guc_table() {
-    while (alloc_mem_stack) {
-        void *pointer = pop_from_stack(&alloc_mem_stack);
-        free(pointer);
-    }
-    destroy_map(&map);
-}
+//=========UTILS (config reader)=========
 
+/**
+ * @brief Checks whether reading the next character will result in the EOF.
+ *  If EOF has not been reached move file position indicator back one character
+ *
+ * @param config - pointer to config file
+ * @return true - end of file has been reached or some error occurred
+ * @return false - in another case
+ */
 bool is_eof(FILE *config) {
     char c = fgetc(config);
     if (c == EOF) return true;
 
-    fseek(config, -1, SEEK_CUR);
+    if (fseek(config, -1, SEEK_CUR) < 0) {
+        LOG(LOG_ERROR, "Can not move file position indicator. File stream now invalid! Fseek error: %s\n",
+            strerror(errno));
+
+        return true;
+    }
     return false;
 }
 
+/**
+ * @brief Buffered reader. Read full config string. If buffer size not enough then realloc it
+ *
+ * @param config - pointer to config file
+ * @param conf_raw_string - pointer to config string
+ * @param size - start size of the config string
+ * @return true - if config string reading successfully
+ * @return false - if some error occurred or EOF has been reached (if error occurred conf_raw_string will be NULL)
+ */
 bool read_config_string(FILE *config, char **conf_raw_string, size_t size) {
-    while (!is_eof(config)) {
-        if (fgets(*conf_raw_string, size, config) == NULL) break;
-
+    while (fgets(*conf_raw_string, size, config) != NULL) {
         if ((*conf_raw_string)[strlen(*conf_raw_string) - 1] != '\n') {
             // If read last string (it doesn`t contains '\n') return true for analyze it
-            // If this not done then looping will occur (because fseek shift our position by number of reading
+            // If this check is not done then looping will occur (because fseek shift our position by number of reading
             // bytes)
             if (is_eof(config)) return true;
 
-            fseek(config, (-1) * strlen(*conf_raw_string), SEEK_CUR);
+            if (fseek(config, (-1) * strlen(*conf_raw_string), SEEK_CUR) < 0) {
+                LOG(LOG_ERROR, "Can not read config string. Fseek error: %s\n", strerror(errno));
+                return false;
+            }
             *conf_raw_string = (char *) realloc(*conf_raw_string, size * 2);
+            if (conf_raw_string == NULL) {
+                LOG(LOG_ERROR, "Can not read config string. Realloc error: %s\n", strerror(errno));
+                return false;
+            }
+
             size *= 2;
             continue;
         } else
@@ -313,87 +344,65 @@ bool read_config_string(FILE *config, char **conf_raw_string, size_t size) {
         return true;
     }
 
-    if (ferror(config)) LOG(LOG_ERROR, "Error occurred while reading config file: %s", strerror(errno));
+    // if NULL was returned because EOF was reached
+    if (feof(config))
+        return true;
+    // else check errors
+    else if (ferror(config))
+        LOG(LOG_ERROR, "Error occurred while reading config file: %s", strerror(errno));
 
     return false;
 }
 
-/**
- * @brief Create a config table object
- *
- * @return -1 if table already exists or 0 if all is OK
- */
-int create_config_table(void) {
-    if (is_config_created) {
-        return -1;
-    }
+//=========CONFIG FUNCTIONS=========
 
-    is_config_created = true;
-    return 0;
+void create_default_conf_vars(void) {
+    // create vars
 }
 
-/*!
-    Destroy config table and frees all resources associated with it. It should
-   be called once.
-    @return -1 if table already destroyed or 0 if all is OK
+/**
+ * @brief Determine if variable exists in config
+ * @param [in] name name of variable
+ * @return true if variable exists and false if not
+ REWRITE
 */
-int destroy_config_table(void) {
-    if (is_config_created) {
-        is_config_created = false;
-        return 0;
-    }
+bool does_variable_exist(const char* name); {
+    Guc_variable *var = (Guc_variable *) get_map_element(map, name);
 
-    return -1;
-}
+    if (var == NULL || !equals(get_identify(var->context), get_identify(context))) return false;
 
-void create_guc_table() {
-    map = create_map();
+    return true;
 }
 
 /**
- * \brief Parse configuration file and create GUC variables from config variables
- * \note If variable now exists in GUC table with C_MAIN context
- *  (variables with user context can not be in table then main process call this function) it will be ignored
- */
-void parse_config() {
-    FILE *config;
-    if (!is_var_exists_in_config("conf_path", C_MAIN | C_STATIC)) {
-        printf("Use default configuration file\n");
-        define_custom_string_variable("conf_path", "Path to configuration file", DEFAULT_CONF_FILE_PATH,
-                                      C_MAIN | C_DYNAMIC);
-        config = fopen(DEFAULT_CONF_FILE_PATH, "r");
-    } else {
-        Guc_data conf_path = get_config_parameter("conf_path", C_MAIN | C_DYNAMIC);
-        config = fopen(conf_path.str, "r");
-        if (config == NULL) {
-            conf_path.str = DEFAULT_CONF_FILE_PATH;
-            set_string_config_parameter("conf_path", conf_path.str, C_MAIN | C_DYNAMIC);
-            write_stderr("Can`t read user config file: %s. Try to read default config file\n", strerror(errno));
-            config = fopen(DEFAULT_CONF_FILE_PATH, "r");
-        }
+ * @brief Parse configuration file located on path.
+ * @param [in] path path to configuration file. It must not be NULL.
+ * @return -1 if some error occurred or 0 if all is OK.
+*/
+int parse_config(const char* path) {
+    if (path == NULL) { return -1; }
+
+    FILE *config = fopen(path, "r");
+    if (config == NULL) {
+        LOG(LOG_ERROR, "Can`t read config file: %s. Use default config values\n", strerror(errno));
+        create_default_conf_vars();
+        return -1;
     }
 
     alloc_mem_stack = create_stack();
 
-    if (config == NULL) {
-        write_stderr("Can`t read config file: %s. Use default GUC values\n", strerror(errno));
-        return;
-    }
-
-    char *conf_raw_string = (char *) malloc(MAX_CONFIG_KEY_SIZE + CONFIG_VALUE_SIZE + 2);
-    Guc_variable var;
-    Conf_string conf_string;
-    conf_string.value = &(var.elem);
-    bool string_is_incorrect = true;
+    char *conf_raw_string = (char *) malloc(MAX_CONFIG_KEY_SIZE + START_CONFIG_VALUE_SIZE + 2);
+    ConfigVariable var;
+    ConfigString* conf_string = NULL;
+    //conf_string.value = &(var); // add pointer for auto fill var variable
 
     // We read the line up to the line break character and read it separately so as not to interfere
-    while (read_config_string(config, &conf_raw_string, MAX_CONFIG_KEY_SIZE + CONFIG_VALUE_SIZE + 2)) {
+    while (read_config_string(config, &conf_raw_string, MAX_CONFIG_KEY_SIZE + START_CONFIG_VALUE_SIZE + 2)) {
         memset(conf_string.key, 0, MAX_CONFIG_KEY_SIZE);
 
         // get key and value from config string
-        Config_vartype type = analize_config_string(conf_raw_string, &conf_string, &string_is_incorrect);
-
-        if (string_is_incorrect || type == UNINIT || is_var_exists_in_config(conf_string.key, C_MAIN)) continue;
+        conf_string = convert_config_string(conf_raw_string);
+        if (conf_string == NULL || does_variable_exist(conf_string->key)) continue;
 
         if (type == ARR_LONG) {
             push_to_stack(&alloc_mem_stack, var.elem.arr_long.data);
@@ -552,14 +561,41 @@ void set_long_config_parameter(const char *name, const long data, const int8_t c
 }
 
 /**
- * \brief Check if variable with name "name" exists in GUC table
- * \return true if variable with name "name" exists in GUC table and it`s context equals with param context,
- *         false if not
+ * @brief Create a config table object
+ *
+ * @return -1 if table already exists or 0 if all is OK
  */
-bool is_var_exists_in_config(const char *name, const int8_t context) {
-    Guc_variable *var = (Guc_variable *) get_map_element(map, name);
+int create_config_table(void) {
+    if (is_config_created) { return -1; }
 
-    if (var == NULL || !equals(get_identify(var->context), get_identify(context))) return false;
+    is_config_created = true;
+    return 0;
+}
 
-    return true;
+/*!
+    Destroy config table and frees all resources associated with it. It should
+   be called once.
+    @return -1 if table already destroyed or 0 if all is OK
+*/
+int destroy_config_table(void) {
+    if (is_config_created) {
+        is_config_created = false;
+        return 0;
+    }
+
+    return -1;
+}
+
+void create_guc_table() {
+    map = create_map();
+}
+
+int destroy_guc_table() {
+    while (alloc_mem_stack) {
+        void *pointer = pop_from_stack(&alloc_mem_stack);
+        free(pointer);
+    }
+    destroy_map(&map);
+
+    return 0;
 }

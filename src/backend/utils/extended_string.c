@@ -146,5 +146,4 @@ char *oversize_string_concat(char *str1, char *str2, char separator, size_t empt
     new_str = strcat(new_str, str2);
 
     return new_str;
-
 }
