@@ -4,9 +4,9 @@
  * @brief This file contains realization of hah_map.h
  * @version 0.1
  * @date 2025-01-30
- * 
+ *
  * @copyright Copyright (c) 2025
- * 
+ *
  */
 #include "../../include/utils/hash_map.h"
 #include <errno.h>
@@ -33,40 +33,34 @@ static CollisionsList *create_collisions_list() {
     return clist;
 }
 
-static void insert_to_collisions_list(CollisionsList *clist, const void *value, const size_t value_size,
-                                      const char *key) {
+static int insert_to_collisions_list(CollisionsList *clist, void *value, const char *key) {
     if (clist == NULL) {
         LOG(LOG_ERROR, "Invalid parameter: clist. It should be not NULL\n");
-        return;
+        return -1;
     }
 
     CollisionsListElement *new = (CollisionsListElement *) malloc(sizeof(CollisionsListElement));
     if (new == NULL) {
         LOG(LOG_ERROR, "Error wile allocating memory: %s\n", strerror(errno));
-        return;
+        return -1;
     }
 
     new->next = NULL;
 
     new->key_str = calloc(strlen(key) + 1, sizeof(char));
     if (new->key_str == NULL) {
+        free(new);
         LOG(LOG_ERROR, "Error wile allocating memory: %s\n", strerror(errno));
-        return;
+        return -1;
     }
     strcpy(new->key_str, key);
 
-    new->value = calloc(value_size, sizeof(char));
-    if (new->value == NULL) {
-        LOG(LOG_ERROR, "Error wile allocating memory: %s\n", strerror(errno));
-        return;
-    }
-    memcpy(new->value, value, value_size);
+    new->value = value;
 
     if (clist->data == NULL) {
         new->prev = NULL;
         clist->data = new;
-    }
-    else {
+    } else {
         CollisionsListElement *last_list_elem = clist->data;
 
         while (last_list_elem->next != NULL) { last_list_elem = last_list_elem->next; }
@@ -76,6 +70,57 @@ static void insert_to_collisions_list(CollisionsList *clist, const void *value, 
     }
 
     clist->size++;
+
+    return 0;
+}
+
+static int insert_copy_to_collisions_list(CollisionsList *clist, const void *value, const size_t value_size,
+                                          const char *key) {
+    if (clist == NULL) {
+        LOG(LOG_ERROR, "Invalid parameter: clist. It should be not NULL\n");
+        return -1;
+    }
+
+    CollisionsListElement *new = (CollisionsListElement *) malloc(sizeof(CollisionsListElement));
+    if (new == NULL) {
+        LOG(LOG_ERROR, "Error wile allocating memory: %s\n", strerror(errno));
+        return -1;
+    }
+
+    new->next = NULL;
+
+    new->key_str = calloc(strlen(key) + 1, sizeof(char));
+    if (new->key_str == NULL) {
+        free(new);
+        LOG(LOG_ERROR, "Error wile allocating memory: %s\n", strerror(errno));
+        return -1;
+    }
+    strcpy(new->key_str, key);
+
+    new->value = calloc(value_size, sizeof(char));
+    if (new->value == NULL) {
+        free(new->key_str);
+        free(new);
+        LOG(LOG_ERROR, "Error wile allocating memory: %s\n", strerror(errno));
+        return -1;
+    }
+    memcpy(new->value, value, value_size);
+
+    if (clist->data == NULL) {
+        new->prev = NULL;
+        clist->data = new;
+    } else {
+        CollisionsListElement *last_list_elem = clist->data;
+
+        while (last_list_elem->next != NULL) { last_list_elem = last_list_elem->next; }
+
+        new->prev = last_list_elem;
+        last_list_elem->next = new;
+    }
+
+    clist->size++;
+
+    return 0;
 }
 
 static CollisionsListElement *get_collisions_list_elem(CollisionsList clist, const char *key) {
@@ -108,6 +153,19 @@ static void destroy_collisions_list(CollisionsList *clist) {
     CollisionsListElement *del_elem = clist->data;
     while (clist->data != NULL) {
         curr_elem = curr_elem->next;
+        delete_from_collisions_list(clist, del_elem);
+        del_elem = curr_elem;
+    }
+
+    free(clist);
+}
+
+static void destroy_collisions_list_with_data(CollisionsList *clist, void (*data_destroyer)(void *data)) {
+    CollisionsListElement *curr_elem = clist->data;
+    CollisionsListElement *del_elem = clist->data;
+    while (clist->data != NULL) {
+        curr_elem = curr_elem->next;
+        data_destroyer(del_elem->value);
         delete_from_collisions_list(clist, del_elem);
         del_elem = curr_elem;
     }
@@ -154,8 +212,21 @@ static int hash_function(const char *string) {
 
 HashMapPtr create_map() {
     HashMapPtr map = (HashMapPtr) calloc(COUNT_ELEMENTS_IN_ARRAY, sizeof(HashMapElem));
+    if (map == NULL) {
+        LOG(LOG_ERROR, "Can not create hash map: %s\n", strerror(errno));
+        return NULL;
+    }
 
-    for (size_t i = 0; i < COUNT_ELEMENTS_IN_ARRAY; i++) { map[i].values = create_collisions_list(); }
+    for (size_t i = 0; i < COUNT_ELEMENTS_IN_ARRAY; i++) {
+        map[i].values = create_collisions_list();
+        if (map[i].values == NULL) {
+            LOG(LOG_ERROR, "Can not create collisions list for hash map: %s\n", strerror(errno));
+
+            for (int j = 0; j < i; ++j) { free(map[j].values); }
+            free(map);
+            return NULL;
+        }
+    }
 
     return map;
 }
@@ -172,13 +243,26 @@ void *get_map_element(HashMapPtr map, const char *key) {
  * @brief Push element to hash map
  * @note This function makes copy of elements data, so you can push elements from stack too
  */
-void push_to_map(HashMapPtr map, const char *key, const void *value, const size_t value_size) {
+int push_to_map_copy(HashMapPtr map, const char *key, const void *value, const size_t value_size) {
     int key_index = hash_function(key);
-    insert_to_collisions_list(map[key_index].values, value, value_size, key);
+    return insert_copy_to_collisions_list(map[key_index].values, value, value_size, key);
+}
+
+int push_to_map(HashMapPtr map, const char *key, void *value) {
+    int key_index = hash_function(key);
+    return insert_to_collisions_list(map[key_index].values, value, key);
 }
 
 void destroy_map(HashMapPtr *map) {
     for (size_t i = 0; i < get_map_size(*map); i++) { destroy_collisions_list((*map)[i].values); }
+
+    free(*map);
+}
+
+void destroy_map_with_data(HashMapPtr *map, void (*data_destroyer)(void *data)) {
+    for (size_t i = 0; i < get_map_size(*map); i++) {
+        destroy_collisions_list_with_data((*map)[i].values, data_destroyer);
+    }
 
     free(*map);
 }

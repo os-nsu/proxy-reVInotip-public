@@ -46,6 +46,8 @@ extern void *get_map_element(HashMapPtr map, const char *key);
  * @brief Push element to hash map
  * @note This function makes copy of elements data, so you can push elements from stack too
  */
-extern void push_to_map(HashMapPtr map, const char *key, const void *value, const size_t value_size);
+extern int push_to_map_copy(HashMapPtr map, const char *key, const void *value, const size_t value_size);
+extern int push_to_map(HashMapPtr map, const char *key, void *value);
 extern void destroy_map(HashMapPtr *map);
+extern void destroy_map_with_data(HashMapPtr *map, void (*data_destroyer)(void *data));
 extern size_t get_map_size(HashMapPtr map);
